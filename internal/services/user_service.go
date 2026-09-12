@@ -18,10 +18,12 @@ type userService struct {
 	userRepo repositories.UserRepo
 }
 
+// NewUserService constructs a UserService backed by the given repository.
 func NewUserService(userRepo repositories.UserRepo) UserService {
 	return &userService{userRepo: userRepo}
 }
 
+// GetProfile returns the user's profile, mapping a missing user to ErrUserNotFound.
 func (s *userService) GetProfile(ctx context.Context, userID int) (*models.User, error) {
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
@@ -30,6 +32,7 @@ func (s *userService) GetProfile(ctx context.Context, userID int) (*models.User,
 	return user, nil
 }
 
+// UpdateProfile applies partial updates to the user's username and email.
 func (s *userService) UpdateProfile(ctx context.Context, userID int, req *models.UpdateProfileRequest) (*models.User, error) {
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
@@ -49,6 +52,7 @@ func (s *userService) UpdateProfile(ctx context.Context, userID int, req *models
 	return user, nil
 }
 
+// DeleteAccount removes the user's account.
 func (s *userService) DeleteAccount(ctx context.Context, userID int) error {
 	if err := s.userRepo.Delete(ctx, userID); err != nil {
 		return fmt.Errorf("failed to delete account: %w", err)

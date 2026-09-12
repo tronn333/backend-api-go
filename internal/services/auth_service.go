@@ -22,10 +22,13 @@ type authService struct {
 	authRepo repositories.AuthRepo
 }
 
+// NewAuthService constructs an AuthService backed by the given repository.
 func NewAuthService(authRepo repositories.AuthRepo) AuthService {
 	return &authService{authRepo: authRepo}
 }
 
+// Register creates a new user account after checking for an existing email,
+// hashes the password, and returns an auth response containing a signed JWT.
 func (s *authService) Register(ctx context.Context, req *models.RegisterRequest) (*models.AuthResponse, error) {
 	// Check if email already exists
 	existing, err := s.authRepo.GetByEmail(ctx, req.Email)
@@ -61,6 +64,8 @@ func (s *authService) Register(ctx context.Context, req *models.RegisterRequest)
 	return &models.AuthResponse{Token: token, User: *user}, nil
 }
 
+// Login verifies the email and password and returns an auth response containing
+// a signed JWT.
 func (s *authService) Login(ctx context.Context, req *models.LoginRequest) (*models.AuthResponse, error) {
 	user, err := s.authRepo.GetByEmail(ctx, req.Email)
 	if err != nil {

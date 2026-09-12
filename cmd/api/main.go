@@ -19,6 +19,9 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// main bootstraps the application: it loads configuration, connects to
+// PostgreSQL, runs migrations, wires up the HTTP router, and starts the
+// server with graceful shutdown.
 func main() {
 	// Load .env file (ignore error in production where env vars may be set directly)
 	if err := godotenv.Load(); err != nil {

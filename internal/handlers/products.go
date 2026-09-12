@@ -16,12 +16,13 @@ type ProductHandler struct {
 	productService services.ProductService
 }
 
+// NewProductHandler constructs a ProductHandler backed by the given ProductService.
 func NewProductHandler(productService services.ProductService) *ProductHandler {
 	return &ProductHandler{productService: productService}
 }
 
-// ListProducts godoc
-// GET /products
+// ListProducts handles GET /products: it reads the pagination and category query
+// parameters and returns a paginated list of products.
 func (h *ProductHandler) ListProducts(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
@@ -36,8 +37,8 @@ func (h *ProductHandler) ListProducts(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// GetProduct godoc
-// GET /products/:id
+// GetProduct handles GET /products/:id: it parses the id path parameter and
+// returns the matching product or a 404.
 func (h *ProductHandler) GetProduct(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -58,8 +59,8 @@ func (h *ProductHandler) GetProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, product)
 }
 
-// CreateProduct godoc
-// POST /products
+// CreateProduct handles POST /products: it binds the request body and creates a
+// new product owned by the authenticated user.
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 
@@ -78,8 +79,8 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	c.JSON(http.StatusCreated, product)
 }
 
-// UpdateProduct godoc
-// PATCH /products/:id
+// UpdateProduct handles PATCH /products/:id: it applies partial updates to a
+// product, restricted to its owner or an admin.
 func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	isAdmin := middleware.IsAdmin(c)
@@ -112,8 +113,8 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, product)
 }
 
-// DeleteProduct godoc
-// DELETE /products/:id
+// DeleteProduct handles DELETE /products/:id: it deletes a product, restricted to
+// its owner or an admin.
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	isAdmin := middleware.IsAdmin(c)

@@ -14,12 +14,13 @@ type AuthHandler struct {
 	authService services.AuthService
 }
 
+// NewAuthHandler constructs an AuthHandler backed by the given AuthService.
 func NewAuthHandler(authService services.AuthService) *AuthHandler {
 	return &AuthHandler{authService: authService}
 }
 
-// Register godoc
-// POST /auth/register
+// Register handles POST /auth/register: it validates the request body, creates a
+// new user account, and returns an auth response containing a JWT.
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req models.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -40,8 +41,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, resp)
 }
 
-// Login godoc
-// POST /auth/login
+// Login handles POST /auth/login: it validates the credentials and returns an
+// auth response containing a JWT.
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req models.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

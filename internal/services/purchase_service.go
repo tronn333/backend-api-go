@@ -20,6 +20,7 @@ type purchaseService struct {
 	productRepo  repositories.ProductRepo
 }
 
+// NewPurchaseService constructs a PurchaseService backed by the given repositories.
 func NewPurchaseService(purchaseRepo repositories.PurchaseRepo, productRepo repositories.ProductRepo) PurchaseService {
 	return &purchaseService{
 		purchaseRepo: purchaseRepo,
@@ -27,6 +28,8 @@ func NewPurchaseService(purchaseRepo repositories.PurchaseRepo, productRepo repo
 	}
 }
 
+// CreatePurchase validates stock, atomically decrements it, records the purchase,
+// and rolls back the decrement if the purchase creation fails.
 func (s *purchaseService) CreatePurchase(ctx context.Context, userID int, req *models.CreatePurchaseRequest) (*models.Purchase, error) {
 	// Fetch the product to validate and calculate total
 	product, err := s.productRepo.GetByID(ctx, req.ProductID)
@@ -61,6 +64,7 @@ func (s *purchaseService) CreatePurchase(ctx context.Context, userID int, req *m
 	return purchase, nil
 }
 
+// GetPurchaseHistory clamps pagination and returns the user's purchases.
 func (s *purchaseService) GetPurchaseHistory(ctx context.Context, userID, page, pageSize int) (*models.PurchaseHistoryResponse, error) {
 	if page < 1 {
 		page = 1
@@ -85,6 +89,7 @@ func (s *purchaseService) GetPurchaseHistory(ctx context.Context, userID, page, 
 	}, nil
 }
 
+// GetPurchase returns a single purchase if it belongs to the user.
 func (s *purchaseService) GetPurchase(ctx context.Context, id, userID int) (*models.Purchase, error) {
 	purchase, err := s.purchaseRepo.GetByID(ctx, id)
 	if err != nil {
@@ -99,6 +104,8 @@ func (s *purchaseService) GetPurchase(ctx context.Context, id, userID int) (*mod
 	return purchase, nil
 }
 
+// CancelPurchase marks a purchase cancelled (when allowed) and restores its
+// product stock.
 func (s *purchaseService) CancelPurchase(ctx context.Context, id, userID int) error {
 	purchase, err := s.purchaseRepo.GetByID(ctx, id)
 	if err != nil {

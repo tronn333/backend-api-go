@@ -18,10 +18,12 @@ type purchaseRepo struct {
 	db *sql.DB
 }
 
+// NewPurchaseRepo constructs a PurchaseRepo backed by the given database handle.
 func NewPurchaseRepo(db *sql.DB) PurchaseRepo {
 	return &purchaseRepo{db: db}
 }
 
+// Create inserts a new purchase and writes back its generated id and timestamps.
 func (r *purchaseRepo) Create(ctx context.Context, purchase *models.Purchase) error {
 	query := `INSERT INTO purchases (user_id, product_id, quantity, total_price, status)
 	          VALUES ($1, $2, $3, $4, $5)
@@ -32,6 +34,8 @@ func (r *purchaseRepo) Create(ctx context.Context, purchase *models.Purchase) er
 	).Scan(&purchase.ID, &purchase.CreatedAt, &purchase.UpdatedAt)
 }
 
+// GetByUserID returns a page of a user's purchases (joined with their product)
+// and the total matching count.
 func (r *purchaseRepo) GetByUserID(ctx context.Context, userID, page, pageSize int) ([]models.Purchase, int, error) {
 	offset := (page - 1) * pageSize
 
@@ -79,6 +83,8 @@ func (r *purchaseRepo) GetByUserID(ctx context.Context, userID, page, pageSize i
 	return purchases, count, rows.Err()
 }
 
+// GetByID fetches a single purchase (joined with its product) by id, returning
+// ErrPurchaseNotFound when it doesn't exist.
 func (r *purchaseRepo) GetByID(ctx context.Context, id int) (*models.Purchase, error) {
 	pu := &models.Purchase{}
 	prod := &models.Product{}
@@ -108,6 +114,8 @@ func (r *purchaseRepo) GetByID(ctx context.Context, id int) (*models.Purchase, e
 	return pu, nil
 }
 
+// UpdateStatus sets a purchase's status, returning ErrPurchaseNotFound when no
+// row was updated.
 func (r *purchaseRepo) UpdateStatus(ctx context.Context, id int, status models.PurchaseStatus) error {
 	result, err := r.db.ExecContext(ctx,
 		`UPDATE purchases SET status = $1, updated_at = NOW() WHERE id = $2`,

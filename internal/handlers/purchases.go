@@ -16,12 +16,13 @@ type PurchaseHandler struct {
 	purchaseService services.PurchaseService
 }
 
+// NewPurchaseHandler constructs a PurchaseHandler backed by the given PurchaseService.
 func NewPurchaseHandler(purchaseService services.PurchaseService) *PurchaseHandler {
 	return &PurchaseHandler{purchaseService: purchaseService}
 }
 
-// CreatePurchase godoc
-// POST /purchases
+// CreatePurchase handles POST /purchases: it validates the request and creates a
+// purchase for the authenticated user, decrementing product stock.
 func (h *PurchaseHandler) CreatePurchase(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 
@@ -47,8 +48,8 @@ func (h *PurchaseHandler) CreatePurchase(c *gin.Context) {
 	c.JSON(http.StatusCreated, purchase)
 }
 
-// GetPurchaseHistory godoc
-// GET /purchases
+// GetPurchaseHistory handles GET /purchases: it returns a paginated list of the
+// authenticated user's purchases.
 func (h *PurchaseHandler) GetPurchaseHistory(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -63,8 +64,8 @@ func (h *PurchaseHandler) GetPurchaseHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// GetPurchase godoc
-// GET /purchases/:id
+// GetPurchase handles GET /purchases/:id: it returns a single purchase owned by
+// the authenticated user.
 func (h *PurchaseHandler) GetPurchase(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 
@@ -90,8 +91,8 @@ func (h *PurchaseHandler) GetPurchase(c *gin.Context) {
 	c.JSON(http.StatusOK, purchase)
 }
 
-// CancelPurchase godoc
-// PATCH /purchases/:id/cancel
+// CancelPurchase handles PATCH /purchases/:id/cancel: it cancels a purchase owned
+// by the authenticated user and restores the product's stock.
 func (h *PurchaseHandler) CancelPurchase(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 

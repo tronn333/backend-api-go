@@ -15,12 +15,12 @@ type UserHandler struct {
 	userService services.UserService
 }
 
+// NewUserHandler constructs a UserHandler backed by the given UserService.
 func NewUserHandler(userService services.UserService) *UserHandler {
 	return &UserHandler{userService: userService}
 }
 
-// GetProfile godoc
-// GET /users/me
+// GetProfile handles GET /users/me: it returns the authenticated user's profile.
 func (h *UserHandler) GetProfile(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 
@@ -37,8 +37,8 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-// UpdateProfile godoc
-// PATCH /users/me
+// UpdateProfile handles PATCH /users/me: it applies partial updates to the
+// authenticated user's username and email.
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 
@@ -61,8 +61,8 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-// DeleteAccount godoc
-// DELETE /users/me
+// DeleteAccount handles DELETE /users/me: it permanently deletes the
+// authenticated user's account.
 func (h *UserHandler) DeleteAccount(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 

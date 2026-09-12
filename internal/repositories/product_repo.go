@@ -20,10 +20,13 @@ type productRepo struct {
 	db *sql.DB
 }
 
+// NewProductRepo constructs a ProductRepo backed by the given database handle.
 func NewProductRepo(db *sql.DB) ProductRepo {
 	return &productRepo{db: db}
 }
 
+// GetAll returns a page of products (optionally filtered by category) and the
+// total matching count.
 func (r *productRepo) GetAll(ctx context.Context, page, pageSize int, category string) ([]models.Product, int, error) {
 	offset := (page - 1) * pageSize
 
@@ -80,6 +83,8 @@ func (r *productRepo) GetAll(ctx context.Context, page, pageSize int, category s
 	return products, count, rows.Err()
 }
 
+// GetByID fetches a single product by id, returning ErrProductNotFound when it
+// doesn't exist.
 func (r *productRepo) GetByID(ctx context.Context, id int) (*models.Product, error) {
 	p := &models.Product{}
 	var desc, cat sql.NullString
@@ -100,6 +105,7 @@ func (r *productRepo) GetByID(ctx context.Context, id int) (*models.Product, err
 	return p, nil
 }
 
+// Create inserts a new product and writes back its generated id and timestamps.
 func (r *productRepo) Create(ctx context.Context, product *models.Product) error {
 	query := `INSERT INTO products (name, description, price, stock, category, seller_id)
 	          VALUES ($1, $2, $3, $4, $5, $6)
@@ -110,6 +116,7 @@ func (r *productRepo) Create(ctx context.Context, product *models.Product) error
 	).Scan(&product.ID, &product.CreatedAt, &product.UpdatedAt)
 }
 
+// Update persists the given product's fields and refreshes its updated_at timestamp.
 func (r *productRepo) Update(ctx context.Context, product *models.Product) error {
 	query := `UPDATE products
 	          SET name = $1, description = $2, price = $3, stock = $4, category = $5, updated_at = NOW()
@@ -121,11 +128,14 @@ func (r *productRepo) Update(ctx context.Context, product *models.Product) error
 	).Scan(&product.UpdatedAt)
 }
 
+// Delete removes the product with the given id.
 func (r *productRepo) Delete(ctx context.Context, id int) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM products WHERE id = $1`, id)
 	return err
 }
 
+// DecrementStock atomically subtracts quantity from a product's stock, returning
+// ErrInsufficientStock when the stock would go negative.
 func (r *productRepo) DecrementStock(ctx context.Context, id, quantity int) error {
 	result, err := r.db.ExecContext(ctx,
 		`UPDATE products SET stock = stock - $1, updated_at = NOW()

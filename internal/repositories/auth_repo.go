@@ -17,10 +17,12 @@ type authRepo struct {
 	db *sql.DB
 }
 
+// NewAuthRepo constructs an AuthRepo backed by the given database handle.
 func NewAuthRepo(db *sql.DB) AuthRepo {
 	return &authRepo{db: db}
 }
 
+// Create inserts a new user and writes back the generated id and timestamps.
 func (r *authRepo) Create(ctx context.Context, user *models.User) error {
 	query := `INSERT INTO users (username, email, password, role)
 	          VALUES ($1, $2, $3, $4)
@@ -30,6 +32,8 @@ func (r *authRepo) Create(ctx context.Context, user *models.User) error {
 	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
 }
 
+// GetByEmail fetches a user by email, returning nil without an error when no
+// matching user exists.
 func (r *authRepo) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	user := &models.User{}
 	query := `SELECT id, username, email, password, role, created_at, updated_at
