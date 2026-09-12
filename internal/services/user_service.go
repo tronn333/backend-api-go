@@ -1,6 +1,7 @@
 package services
 
 import (
+	"backend-api-go/internal/apperr"
 	"backend-api-go/internal/models"
 	"backend-api-go/internal/repositories"
 	"context"
@@ -24,7 +25,7 @@ func NewUserService(userRepo repositories.UserRepo) UserService {
 func (s *userService) GetProfile(ctx context.Context, userID int) (*models.User, error) {
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("user not found")
+		return nil, apperr.ErrUserNotFound
 	}
 	return user, nil
 }
@@ -32,7 +33,7 @@ func (s *userService) GetProfile(ctx context.Context, userID int) (*models.User,
 func (s *userService) UpdateProfile(ctx context.Context, userID int, req *models.UpdateProfileRequest) (*models.User, error) {
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("user not found")
+		return nil, apperr.ErrUserNotFound
 	}
 
 	if req.Username != "" {

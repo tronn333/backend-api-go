@@ -1,10 +1,10 @@
 package repositories
 
 import (
+	"backend-api-go/internal/apperr"
 	"backend-api-go/internal/models"
 	"context"
 	"database/sql"
-	"fmt"
 )
 
 type ProductRepo interface {
@@ -90,7 +90,7 @@ func (r *productRepo) GetByID(ctx context.Context, id int) (*models.Product, err
 		&cat, &p.SellerID, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("product not found")
+		return nil, apperr.ErrProductNotFound
 	}
 	if err != nil {
 		return nil, err
@@ -140,7 +140,7 @@ func (r *productRepo) DecrementStock(ctx context.Context, id, quantity int) erro
 		return err
 	}
 	if rows == 0 {
-		return fmt.Errorf("insufficient stock")
+		return apperr.ErrInsufficientStock
 	}
 	return nil
 }

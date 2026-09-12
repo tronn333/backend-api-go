@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"backend-api-go/internal/apperr"
 	"backend-api-go/internal/models"
 	"backend-api-go/internal/services"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -28,7 +30,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	resp, err := h.authService.Register(c.Request.Context(), &req)
 	if err != nil {
 		status := http.StatusInternalServerError
-		if err.Error() == "email already registered" {
+		if errors.Is(err, apperr.ErrEmailAlreadyRegistered) {
 			status = http.StatusConflict
 		}
 		c.JSON(status, gin.H{"error": err.Error()})
@@ -49,7 +51,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	resp, err := h.authService.Login(c.Request.Context(), &req)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		status := http.StatusInternalServerError
+		if errors.Is(err, apperr.ErrInvalidCredentials) {
+			status = http.StatusUnauthorized
+		}
+		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"backend-api-go/internal/apperr"
 	"backend-api-go/internal/models"
 	"backend-api-go/internal/repositories"
 	"context"
@@ -30,11 +31,11 @@ func (s *purchaseService) CreatePurchase(ctx context.Context, userID int, req *m
 	// Fetch the product to validate and calculate total
 	product, err := s.productRepo.GetByID(ctx, req.ProductID)
 	if err != nil {
-		return nil, fmt.Errorf("product not found")
+		return nil, apperr.ErrProductNotFound
 	}
 
 	if product.Stock < req.Quantity {
-		return nil, fmt.Errorf("insufficient stock: only %d items available", product.Stock)
+		return nil, fmt.Errorf("%w: only %d items available", apperr.ErrInsufficientStock, product.Stock)
 	}
 
 	// Decrement stock atomically (checks stock >= quantity)
@@ -92,7 +93,7 @@ func (s *purchaseService) GetPurchase(ctx context.Context, id, userID int) (*mod
 
 	// Users can only see their own purchases
 	if purchase.UserID != userID {
-		return nil, fmt.Errorf("forbidden")
+		return nil, apperr.ErrPurchaseForbidden
 	}
 
 	return purchase, nil
@@ -105,11 +106,11 @@ func (s *purchaseService) CancelPurchase(ctx context.Context, id, userID int) er
 	}
 
 	if purchase.UserID != userID {
-		return fmt.Errorf("forbidden")
+		return apperr.ErrPurchaseForbidden
 	}
 
 	if purchase.Status != models.StatusPending && purchase.Status != models.StatusCompleted {
-		return fmt.Errorf("purchase cannot be cancelled in its current status")
+		return apperr.ErrPurchaseNotCancellable
 	}
 
 	if err := s.purchaseRepo.UpdateStatus(ctx, id, models.StatusCancelled); err != nil {
