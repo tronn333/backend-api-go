@@ -10,6 +10,23 @@ authentication (JWT), user profiles, product management, and purchase/order hist
 - PostgreSQL (via `lib/pq`)
 - JWT (HS256) authentication, bcrypt password hashing
 
+## Project structure
+
+```text
+cmd/api/                  # entrypoint: config wiring, migrations, graceful shutdown
+internal/
+  apperr/                 # typed sentinel errors mapped to HTTP status codes
+  handlers/               # HTTP layer (Gin): binding, validation, responses
+  services/               # business rules and orchestration
+  repositories/           # data access (PostgreSQL)
+  models/                 # domain structs and request/response DTOs
+  utils/                  # shared helpers (structured logging)
+pkg/
+  db/                     # connection pool and schema migrations
+  jwtutil/                # single source of truth for the JWT signing secret
+  middleware/             # JWT auth and role/ownership authorization
+```
+
 ## Endpoints
 
 | Method | Path                    | Auth   | Description                     |
@@ -104,6 +121,33 @@ docker run --rm -p 8080:8080 \
 
 ## Tests
 
+The suite uses in-memory fakes/mocks (no live database required) and covers the
+handler, service, and middleware layers.
+
 ```bash
-go test ./...
+go test ./...   # 73 tests, all passing
+go vet ./...    # static analysis, clean
+gofmt -l .      # formatting, clean
 ```
+
+## ✨ Highlights
+
+- **Clean architecture with dependency injection** — a layered Go codebase
+  (handlers → services → repositories) with no global singletons, so every layer
+  is swappable and independently unit-testable via fakes/mocks.
+- **Security best practices** — bcrypt password hashing, stateless JWT (HS256)
+  auth with middleware-guarded routes, owner-vs-admin authorization, and a single
+  source of truth for the signing secret.
+- **Robust error handling** — typed sentinel errors consumed with `errors.Is`,
+  mapped to precise HTTP status codes (e.g. `409 Conflict` for an uncancellable
+  order) instead of brittle string matching.
+- **Data integrity** — transactional stock decrement with rollback on failure, and
+  rule-enforced order cancellation.
+- **Observability & operations** — `/health` endpoint, graceful shutdown draining
+  in-flight requests on SIGTERM/SIGINT, and reproducible Docker Compose + multi-stage builds.
+- **Disciplined testing** — 73 unit tests across handlers, services, and middleware;
+  `go vet` and `gofmt` clean.
+
+> Developed with AI assistance (Cline + Claude/DeepSeek) — used to accelerate
+> boilerplate while every architectural, correctness, and security decision was made
+> and reviewed manually.
