@@ -1,11 +1,12 @@
 package services
 
 import (
+	"backend-api-go/internal/apperr"
 	"backend-api-go/internal/models"
 	"backend-api-go/internal/repositories"
+	"backend-api-go/pkg/jwtutil"
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -32,7 +33,7 @@ func (s *authService) Register(ctx context.Context, req *models.RegisterRequest)
 		return nil, err
 	}
 	if existing != nil {
-		return nil, fmt.Errorf("email already registered")
+		return nil, apperr.ErrEmailAlreadyRegistered
 	}
 
 	// Hash the password
@@ -66,11 +67,11 @@ func (s *authService) Login(ctx context.Context, req *models.LoginRequest) (*mod
 		return nil, err
 	}
 	if user == nil {
-		return nil, fmt.Errorf("invalid email or password")
+		return nil, apperr.ErrInvalidCredentials
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		return nil, fmt.Errorf("invalid email or password")
+		return nil, apperr.ErrInvalidCredentials
 	}
 
 	token, err := generateJWT(user)
@@ -83,11 +84,6 @@ func (s *authService) Login(ctx context.Context, req *models.LoginRequest) (*mod
 
 // generateJWT creates a signed JWT token for the given user.
 func generateJWT(user *models.User) (string, error) {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		secret = "secret"
-	}
-
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
 		"email":   user.Email,
@@ -97,5 +93,5 @@ func generateJWT(user *models.User) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(secret))
+	return token.SignedString(jwtutil.Secret())
 }

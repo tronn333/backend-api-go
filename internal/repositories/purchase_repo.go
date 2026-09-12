@@ -1,10 +1,10 @@
 package repositories
 
 import (
+	"backend-api-go/internal/apperr"
 	"backend-api-go/internal/models"
 	"context"
 	"database/sql"
-	"fmt"
 )
 
 type PurchaseRepo interface {
@@ -97,7 +97,7 @@ func (r *purchaseRepo) GetByID(ctx context.Context, id int) (*models.Purchase, e
 		&cat, &prod.SellerID, &prod.CreatedAt, &prod.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("purchase not found")
+		return nil, apperr.ErrPurchaseNotFound
 	}
 	if err != nil {
 		return nil, err
@@ -121,7 +121,7 @@ func (r *purchaseRepo) UpdateStatus(ctx context.Context, id int, status models.P
 		return err
 	}
 	if rows == 0 {
-		return fmt.Errorf("purchase not found")
+		return apperr.ErrPurchaseNotFound
 	}
 	return nil
 }

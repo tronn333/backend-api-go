@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"backend-api-go/internal/apperr"
 	"backend-api-go/internal/models"
 	"backend-api-go/internal/services"
 	"backend-api-go/pkg/middleware"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -45,7 +47,11 @@ func (h *ProductHandler) GetProduct(c *gin.Context) {
 
 	product, err := h.productService.GetProduct(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		status := http.StatusInternalServerError
+		if errors.Is(err, apperr.ErrProductNotFound) {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -76,6 +82,7 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 // PATCH /products/:id
 func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	isAdmin := middleware.IsAdmin(c)
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -89,12 +96,13 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	product, err := h.productService.UpdateProduct(c.Request.Context(), id, userID, &req)
+	product, err := h.productService.UpdateProduct(c.Request.Context(), id, userID, isAdmin, &req)
 	if err != nil {
 		status := http.StatusInternalServerError
-		if err.Error() == "product not found" {
+		switch {
+		case errors.Is(err, apperr.ErrProductNotFound):
 			status = http.StatusNotFound
-		} else if err.Error() == "forbidden: you do not own this product" {
+		case errors.Is(err, apperr.ErrProductForbidden):
 			status = http.StatusForbidden
 		}
 		c.JSON(status, gin.H{"error": err.Error()})
@@ -108,6 +116,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 // DELETE /products/:id
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	isAdmin := middleware.IsAdmin(c)
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -115,11 +124,12 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 		return
 	}
 
-	if err := h.productService.DeleteProduct(c.Request.Context(), id, userID); err != nil {
+	if err := h.productService.DeleteProduct(c.Request.Context(), id, userID, isAdmin); err != nil {
 		status := http.StatusInternalServerError
-		if err.Error() == "product not found" {
+		switch {
+		case errors.Is(err, apperr.ErrProductNotFound):
 			status = http.StatusNotFound
-		} else if err.Error() == "forbidden: you do not own this product" {
+		case errors.Is(err, apperr.ErrProductForbidden):
 			status = http.StatusForbidden
 		}
 		c.JSON(status, gin.H{"error": err.Error()})

@@ -1,10 +1,10 @@
 package repositories
 
 import (
+	"backend-api-go/internal/apperr"
 	"backend-api-go/internal/models"
 	"context"
 	"database/sql"
-	"fmt"
 )
 
 type UserRepo interface {
@@ -32,7 +32,7 @@ func (r *userRepo) GetByID(ctx context.Context, id int) (*models.User, error) {
 		&user.Role, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("user not found")
+		return nil, apperr.ErrUserNotFound
 	}
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (r *userRepo) GetByEmail(ctx context.Context, email string) (*models.User, 
 		&user.Role, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("user not found")
+		return nil, apperr.ErrUserNotFound
 	}
 	if err != nil {
 		return nil, err

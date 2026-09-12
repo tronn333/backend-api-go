@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"backend-api-go/internal/apperr"
 	"backend-api-go/internal/models"
 	"backend-api-go/internal/services"
 	"backend-api-go/pkg/middleware"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -32,13 +34,13 @@ func (h *PurchaseHandler) CreatePurchase(c *gin.Context) {
 	purchase, err := h.purchaseService.CreatePurchase(c.Request.Context(), userID, &req)
 	if err != nil {
 		status := http.StatusInternalServerError
-		msg := err.Error()
-		if msg == "product not found" {
+		switch {
+		case errors.Is(err, apperr.ErrProductNotFound):
 			status = http.StatusNotFound
-		} else if msg == "insufficient stock" || containsPrefix(msg, "insufficient stock:") {
+		case errors.Is(err, apperr.ErrInsufficientStock):
 			status = http.StatusBadRequest
 		}
-		c.JSON(status, gin.H{"error": msg})
+		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -75,9 +77,10 @@ func (h *PurchaseHandler) GetPurchase(c *gin.Context) {
 	purchase, err := h.purchaseService.GetPurchase(c.Request.Context(), id, userID)
 	if err != nil {
 		status := http.StatusInternalServerError
-		if err.Error() == "purchase not found" {
+		switch {
+		case errors.Is(err, apperr.ErrPurchaseNotFound):
 			status = http.StatusNotFound
-		} else if err.Error() == "forbidden" {
+		case errors.Is(err, apperr.ErrPurchaseForbidden):
 			status = http.StatusForbidden
 		}
 		c.JSON(status, gin.H{"error": err.Error()})
@@ -100,18 +103,17 @@ func (h *PurchaseHandler) CancelPurchase(c *gin.Context) {
 
 	if err := h.purchaseService.CancelPurchase(c.Request.Context(), id, userID); err != nil {
 		status := http.StatusInternalServerError
-		if err.Error() == "purchase not found" {
+		switch {
+		case errors.Is(err, apperr.ErrPurchaseNotFound):
 			status = http.StatusNotFound
-		} else if err.Error() == "forbidden" {
+		case errors.Is(err, apperr.ErrPurchaseForbidden):
 			status = http.StatusForbidden
+		case errors.Is(err, apperr.ErrPurchaseNotCancellable):
+			status = http.StatusConflict
 		}
 		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "purchase cancelled successfully"})
-}
-
-func containsPrefix(s, prefix string) bool {
-	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
 }

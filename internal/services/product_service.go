@@ -1,6 +1,7 @@
 package services
 
 import (
+	"backend-api-go/internal/apperr"
 	"backend-api-go/internal/models"
 	"backend-api-go/internal/repositories"
 	"context"
@@ -11,8 +12,8 @@ type ProductService interface {
 	ListProducts(ctx context.Context, page, pageSize int, category string) (*models.ProductListResponse, error)
 	GetProduct(ctx context.Context, id int) (*models.Product, error)
 	CreateProduct(ctx context.Context, sellerID int, req *models.CreateProductRequest) (*models.Product, error)
-	UpdateProduct(ctx context.Context, id, sellerID int, req *models.UpdateProductRequest) (*models.Product, error)
-	DeleteProduct(ctx context.Context, id, sellerID int) error
+	UpdateProduct(ctx context.Context, id, sellerID int, isAdmin bool, req *models.UpdateProductRequest) (*models.Product, error)
+	DeleteProduct(ctx context.Context, id, sellerID int, isAdmin bool) error
 }
 
 type productService struct {
@@ -71,15 +72,15 @@ func (s *productService) CreateProduct(ctx context.Context, sellerID int, req *m
 	return product, nil
 }
 
-func (s *productService) UpdateProduct(ctx context.Context, id, sellerID int, req *models.UpdateProductRequest) (*models.Product, error) {
+func (s *productService) UpdateProduct(ctx context.Context, id, sellerID int, isAdmin bool, req *models.UpdateProductRequest) (*models.Product, error) {
 	product, err := s.productRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	// Only the seller or admin can update
-	if product.SellerID != sellerID {
-		return nil, fmt.Errorf("forbidden: you do not own this product")
+	// Only the seller or an admin can update
+	if product.SellerID != sellerID && !isAdmin {
+		return nil, apperr.ErrProductForbidden
 	}
 
 	if req.Name != "" {
@@ -104,14 +105,15 @@ func (s *productService) UpdateProduct(ctx context.Context, id, sellerID int, re
 	return product, nil
 }
 
-func (s *productService) DeleteProduct(ctx context.Context, id, sellerID int) error {
+func (s *productService) DeleteProduct(ctx context.Context, id, sellerID int, isAdmin bool) error {
 	product, err := s.productRepo.GetByID(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	if product.SellerID != sellerID {
-		return fmt.Errorf("forbidden: you do not own this product")
+	// Only the seller or an admin can delete
+	if product.SellerID != sellerID && !isAdmin {
+		return apperr.ErrProductForbidden
 	}
 
 	return s.productRepo.Delete(ctx, id)

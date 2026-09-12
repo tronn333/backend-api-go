@@ -1,9 +1,9 @@
 package middleware
 
 import (
+	"backend-api-go/pkg/jwtutil"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -32,16 +32,12 @@ func AuthRequired() gin.HandlerFunc {
 		}
 
 		tokenStr := parts[1]
-		secret := os.Getenv("JWT_SECRET")
-		if secret == "" {
-			secret = "changeme"
-		}
 
 		token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 			}
-			return []byte(secret), nil
+			return jwtutil.Secret(), nil
 		})
 
 		if err != nil || !token.Valid {
@@ -88,4 +84,10 @@ func GetUserID(c *gin.Context) int {
 		return v
 	}
 	return 0
+}
+
+// IsAdmin reports whether the authenticated user has the "admin" role.
+func IsAdmin(c *gin.Context) bool {
+	role, _ := c.Get(RoleKey)
+	return role == "admin"
 }
