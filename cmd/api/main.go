@@ -6,8 +6,14 @@ import (
 	"backend-api-go/internal/services"
 	"backend-api-go/pkg/db"
 	"backend-api-go/pkg/middleware"
+	"context"
+	"errors"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -97,8 +103,35 @@ func main() {
 		port = "8080"
 	}
 
-	log.Printf("Server starting on :%s", port)
-	if err := r.Run(":" + port); err != nil {
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: r,
+	}
+
+	// Run the server in a goroutine so the main goroutine can wait for
+	// shutdown signals below (SIGINT / SIGTERM).
+	serverErr := make(chan error, 1)
+	go func() {
+		log.Printf("Server starting on :%s", port)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErr <- err
+		}
+	}()
+
+	// Graceful shutdown: block until an error or an interrupt signal.
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case err := <-serverErr:
 		log.Fatalf("failed to start server: %v", err)
+	case sig := <-quit:
+		log.Printf("Received %s, shutting down gracefully...", sig)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Fatalf("server forced to shutdown: %v", err)
+		}
+		log.Println("Server exited cleanly")
 	}
 }
